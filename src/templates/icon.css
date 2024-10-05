@@ -1,0 +1,12 @@
+.icon {
+    font-size: 30px;
+    display: flex;
+    margin-top: 10px;
+    color: blueviolet;
+}
+
+.logo {
+    display: inline;
+    height: 50px;
+    width: 50px;
+}
