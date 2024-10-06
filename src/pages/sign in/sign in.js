@@ -15,7 +15,7 @@ class SignIn extends React.Component {
                 <form>
                     <label for='username or email'>Username or email address:</label><br />
                     <input type="text" id="username-or-email" name="username or email address" /><br />
-                    <label for='Password'>Password:</label><br />
+                    <label for='password'>Password:</label><br />
                     <input type="password" id="password" name="password" /><br />
                     <input type="submit" value="Submit" />
                 </form>
