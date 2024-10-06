@@ -2,7 +2,8 @@
     font-size: 30px;
     display: flex;
     margin-top: 10px;
-    color: blueviolet;
+    color: orange;
+    font-weight: 700;
 }
 
 .logo {

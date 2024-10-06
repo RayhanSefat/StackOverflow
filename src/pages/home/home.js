@@ -1,10 +1,14 @@
 import React from "react"
-import Icon from "../templates/icon";
+import { Helmet } from 'react-helmet'
+import Icon from "../../templates/icon";
 
 class Home extends React.Component {
     render() {
         return(
             <>
+                <Helmet>
+                    <title>{ 'Home - Stack Overflow' }</title>
+                </Helmet>
                 <Icon />
                 <p>This is Home</p>
             </>
