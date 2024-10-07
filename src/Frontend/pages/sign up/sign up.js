@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import Icon from "../../templates/icon";
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -34,51 +35,84 @@ const SignUp = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        name="fname"
-        placeholder="First Name"
-        onChange={handleChange}
-      />
-      <br />
-      <input
-        type="text"
-        name="lname"
-        placeholder="Last Name"
-        onChange={handleChange}
-      />
-      <br />
-      <input
-        type="email"
-        name="email"
-        placeholder="Email"
-        onChange={handleChange}
-      />
-      <br />
-      <input
-        type="text"
-        name="username"
-        placeholder="Username"
-        onChange={handleChange}
-      />
-      <br />
-      <input
-        type="password"
-        name="password"
-        placeholder="Password"
-        onChange={handleChange}
-      />
-      <br />
-      <input
-        type="password"
-        name="retypedPassword"
-        placeholder="Retype Password"
-        onChange={handleChange}
-      />
-      <br />
-      <button type="submit">Sign Up</button>
-    </form>
+    <>
+      <Icon />
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="fname">First Name:</label>
+          <br />
+          <input
+            type="text"
+            name="fname"
+            id="fname"
+            placeholder="First Name"
+            onChange={handleChange}
+          />
+        </div>
+        <br />
+        <div>
+          <label htmlFor="lname">Last Name:</label>
+          <br />
+          <input
+            type="text"
+            name="lname"
+            id="lname"
+            placeholder="Last Name"
+            onChange={handleChange}
+          />
+        </div>
+        <br />
+        <div>
+          <label htmlFor="email">Email:</label>
+          <br />
+          <input
+            type="email"
+            name="email"
+            id="email"
+            placeholder="Email"
+            onChange={handleChange}
+          />
+        </div>
+        <br />
+        <div>
+          <label htmlFor="username">Username:</label>
+          <br />
+          <input
+            type="text"
+            name="username"
+            id="username"
+            placeholder="Username"
+            onChange={handleChange}
+          />
+        </div>
+        <br />
+        <div>
+          <label htmlFor="password">Password:</label>
+          <br />
+          <input
+            type="password"
+            name="password"
+            id="password"
+            placeholder="Password"
+            onChange={handleChange}
+          />
+        </div>
+        <br />
+        <div>
+          <label htmlFor="retypedPassword">Retype Password:</label>
+          <br />
+          <input
+            type="password"
+            name="retypedPassword"
+            id="retypedPassword"
+            placeholder="Retype Password"
+            onChange={handleChange}
+          />
+        </div>
+        <br />
+        <button type="submit">Sign Up</button>
+      </form>
+    </>
   );
 };
 

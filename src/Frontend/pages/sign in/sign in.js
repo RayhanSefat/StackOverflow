@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import Icon from "../../templates/icon";
 
 const SignIn = () => {
   const [formData, setFormData] = useState({
@@ -28,22 +29,33 @@ const SignIn = () => {
 
   return (
     <>
+      <Icon />
       <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          name="username"
-          placeholder="Username"
-          onChange={handleChange}
-          required
-        />{" "}
+        <div>
+          <label htmlFor="username">Username:</label>
+          <br />
+          <input
+            type="text"
+            name="username"
+            id="username"
+            placeholder="Username"
+            onChange={handleChange}
+            required
+          />
+        </div>
         <br />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          onChange={handleChange}
-          required
-        />{" "}
+        <div>
+          <label htmlFor="password">Password:</label>
+          <br />
+          <input
+            type="password"
+            name="password"
+            id="password"
+            placeholder="Password"
+            onChange={handleChange}
+            required
+          />
+        </div>
         <br />
         <button type="submit">Sign In</button>
       </form>
