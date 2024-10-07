@@ -1,14 +1,12 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import "./index.css";
-import App from "./App";
-import reportWebVitals from "./reportWebVitals";
-import Home from './pages/sign in/sign in'
-import SignIn from "./pages/sign up/sign up";
-import SignUp from "./pages/sign up/sign up";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App'; // Ensure the path is correct
+import { BrowserRouter } from 'react-router-dom';
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+const root = ReactDOM.createRoot(document.getElementById('root'));
+
 root.render(
-  <SignUp />
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>
 );
-reportWebVitals();

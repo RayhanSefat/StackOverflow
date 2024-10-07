@@ -1,28 +1,59 @@
-import React from "react"
-import { Helmet } from 'react-helmet'
-import Icon from "../../templates/icon";
+import React, { useState } from "react";
+import axios from "axios";
+import { Link } from "react-router-dom";
 
-class SignIn extends React.Component {
-    render() {
-        return(
-            <>
-                <Helmet>
-                    <title>{ 'Sign in' }</title>
-                </Helmet>
-                <Icon />
-                <div className="form">
-                <h3>Sign in</h3><br />
-                <form>
-                    <label for='username or email'>Username or email address:</label><br />
-                    <input type="text" id="username-or-email" name="username or email address" /><br />
-                    <label for='password'>Password:</label><br />
-                    <input type="password" id="password" name="password" /><br />
-                    <input type="submit" value="Submit" />
-                </form>
-                </div>
-            </>
-        );
-    }
-} 
+const SignIn = () => {
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    axios
+      .post("http://localhost:5000/signin", formData)
+      .then((response) => {
+        alert(response.data.message); // Alert on successful sign-in
+      })
+      .catch((error) => {
+        alert("Invalid login"); // Alert on error
+        console.error("Error: ", error);
+      });
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  return (
+    <>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          name="username"
+          placeholder="Username"
+          onChange={handleChange}
+          required
+        />{" "}
+        <br />
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          onChange={handleChange}
+          required
+        />{" "}
+        <br />
+        <button type="submit">Sign In</button>
+      </form>
+      <br />
+      <br />
+      <div>
+        <Link to="/signup">Sign Up</Link>
+      </div>
+    </>
+  );
+};
 
 export default SignIn;
