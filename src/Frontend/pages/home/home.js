@@ -1,31 +1,76 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Helmet } from "react-helmet";
 import Icon from "../../templates/icon"; // Adjust the import path as necessary
 import { Link } from "react-router-dom";
+import "./home.css";
 
 const Home = () => {
+  const [content, setContent] = useState("");
+  const [file, setFile] = useState(null);
   const [message, setMessage] = useState("");
+  const [username, setUsername] = useState("");
+  const [error, setError] = useState("");
 
-  const token = localStorage.getItem("token");
-
-  const fetchData = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`, // Make sure the token is correctly passed
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
+  // Fetch the username from the backend (or local storage/JWT token)
+  useEffect(() => {
+    const fetchUsername = async () => {
+      try {
+        const token = localStorage.getItem("token"); // Assuming token is stored in localStorage
+        console.log("Token = ", token);
+        const response = await axios.get("http://localhost:5000/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setUsername(response.data.message.split(" ")[1]); // Extract username from the message
+      } catch (err) {
+        setError("Error fetching user information.");
       }
+    };
 
-      const data = await response.json();
-      setMessage(data.message);
-    } catch (error) {
-      console.error("There was an error fetching the data!", error);
+    fetchUsername();
+  }, []);
+
+  // Handle file selection
+  const onFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+
+    if (!content || !file) {
+      setError("Please fill in all fields and choose a file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("content", content);
+    formData.append("file", file);
+    formData.append("username", username);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        "http://localhost:5000/upload",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      setMessage(response.data.message);
+      setContent("");
+      setFile(null);
+    } catch (err) {
+      setError("Error occurred while uploading the file.");
     }
   };
 
@@ -41,8 +86,42 @@ const Home = () => {
         <Link to="/signin">Sign In</Link>
       </div>
       <Icon />
-      <p>This is Home</p>
-      <p>{message}</p> {/* Display the message here */}
+      <div className="home-container">
+        <h2>Welcome, {username}</h2>
+
+        <form onSubmit={handleSubmit} className="upload-form">
+          <div className="form-group">
+            <label htmlFor="content">Post Content:</label>
+            <textarea
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Enter your content here"
+              className="form-control"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="file">Upload a file:</label>
+            <input
+              type="file"
+              id="file"
+              onChange={onFileChange}
+              className="form-control"
+              accept=".c,.cpp,.java,.py,.js"
+              required
+            />
+          </div>
+
+          {error && <p className="error-message">{error}</p>}
+          {message && <p className="success-message">{message}</p>}
+
+          <button type="submit" className="btn-submit">
+            Submit
+          </button>
+        </form>
+      </div>
     </>
   );
 };
