@@ -1,66 +1,87 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Only import Link and useNavigate
-import Icon from "../../templates/icon"; // Adjust the path as necessary
+import { useNavigate } from "react-router-dom";
 
 const SignIn = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const navigate = useNavigate(); // Hook to navigate
+  const [errorMessage, setErrorMessage] = useState(""); // For displaying errors
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Clear any previous error messages
+    setErrorMessage("");
+
+    // Basic form validation
+    if (!username || !password) {
+      setErrorMessage("Username and password are required");
+      return;
+    }
+
     try {
+      console.log("Sending login request:", { username, password });
+
       const response = await fetch("http://localhost:5000/signin", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem("token", data.token);
-        navigate("/"); // Redirect to home
-      } else {
-        setError(data.message); // Show error message if login fails
+      if (!response.ok) {
+        // Check if it’s an authentication failure (401) or other issues (500)
+        const errorData = await response.json();
+        if (response.status === 401) {
+          setErrorMessage(errorData.message || "Invalid username or password");
+        } else {
+          setErrorMessage(
+            errorData.message || "An error occurred. Please try again later."
+          );
+        }
+        return;
       }
+
+      const data = await response.json();
+      console.log("Login successful");
+
+      // Navigate to home or dashboard after successful login
+      navigate("/");
     } catch (error) {
-      console.error("Error:", error);
-      setError("An error occurred. Please try again later.");
+      console.error("Error during sign-in process:", error);
+      setErrorMessage("An unexpected error occurred. Please try again.");
     }
   };
 
   return (
-    <>
-      <Icon />
+    <div className="signin-container">
+      <h2>Sign In</h2>
+      {errorMessage && <p className="error-message">{errorMessage}</p>}
       <form onSubmit={handleSubmit}>
-        <div>
+        <div className="form-group">
           <label htmlFor="username">Username:</label>
           <input
             type="text"
+            id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username"
             required
           />
         </div>
-        <div>
+        <div className="form-group">
           <label htmlFor="password">Password:</label>
           <input
             type="password"
+            id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
             required
           />
         </div>
         <button type="submit">Sign In</button>
       </form>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <Link to="/signup">Sign Up</Link>
-    </>
+    </div>
   );
 };
 

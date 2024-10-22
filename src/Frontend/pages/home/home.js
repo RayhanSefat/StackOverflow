@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom"; 
 import { Helmet } from "react-helmet";
-import Icon from "../../templates/icon"; // Adjust the import path as necessary
+import Icon from "../../templates/icon";
 import { Link } from "react-router-dom";
 import "./home.css";
 
@@ -11,33 +12,29 @@ const Home = () => {
   const [message, setMessage] = useState("");
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  // Fetch the username from the backend (or local storage/JWT token)
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const token = localStorage.getItem("token"); // Assuming token is stored in localStorage
-        console.log("Token = ", token);
-        const response = await axios.get("http://localhost:5000/", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setUsername(response.data.message.split(" ")[1]); // Extract username from the message
+        const response = await axios.get("http://localhost:5000/");
+        setUsername(response.data.username);
       } catch (err) {
-        setError("Error fetching user information.");
+        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+          navigate("/signin");
+        } else {
+          setError("Error fetching user information.");
+        }
       }
     };
 
     fetchUsername();
-  }, []);
+  }, [navigate]);
 
-  // Handle file selection
   const onFileChange = (e) => {
     setFile(e.target.files[0]);
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -51,44 +48,40 @@ const Home = () => {
     const formData = new FormData();
     formData.append("content", content);
     formData.append("file", file);
-    formData.append("username", username);
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        "http://localhost:5000/upload",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const response = await axios.post("http://localhost:5000/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       setMessage(response.data.message);
       setContent("");
       setFile(null);
     } catch (err) {
-      setError("Error occurred while uploading the file.");
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        navigate("/signin");
+      } else {
+        setError("Error occurred while uploading the file.");
+      }
     }
   };
 
   return (
-    <>
+    <div className="home">
       <Helmet>
-        <title>{"Home - Stack Overflow"}</title>
+        <title>Welcome, {username}!</title>
       </Helmet>
-      <div>
-        <Link to="/signup">Sign Up</Link>
-      </div>
-      <div>
-        <Link to="/signin">Sign In</Link>
-      </div>
-      <Icon />
-      <div className="home-container">
-        <h2>Welcome, {username}</h2>
-
+      <main>
+        <div>
+          <Link to="/signup">Sign Up</Link>
+        </div>
+        <div>
+          <Link to="/signin">Sign In</Link>
+        </div>
+        <Icon />
+        <h1>Hello, {username}!</h1>
         <form onSubmit={handleSubmit} className="upload-form">
           <div className="form-group">
             <label htmlFor="content">Post Content:</label>
@@ -96,33 +89,18 @@ const Home = () => {
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter your content here"
-              className="form-control"
-              required
             />
           </div>
-
           <div className="form-group">
-            <label htmlFor="file">Upload a file:</label>
-            <input
-              type="file"
-              id="file"
-              onChange={onFileChange}
-              className="form-control"
-              accept=".c,.cpp,.java,.py,.js"
-              required
-            />
+            <label htmlFor="file">Choose file to upload:</label>
+            <input type="file" id="file" onChange={onFileChange} />
           </div>
-
-          {error && <p className="error-message">{error}</p>}
-          {message && <p className="success-message">{message}</p>}
-
-          <button type="submit" className="btn-submit">
-            Submit
-          </button>
+          <button type="submit">Upload</button>
         </form>
-      </div>
-    </>
+        {message && <p className="message">{message}</p>}
+        {error && <p className="error">{error}</p>}
+      </main>
+    </div>
   );
 };
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
-import Icon from "../../templates/icon";
+import { useNavigate } from "react-router-dom";
+import Icon from "../../templates/icon"; // Adjust the import as necessary
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -11,27 +11,45 @@ const SignUp = () => {
     password: "",
     retypedPassword: "",
   });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (formData.password !== formData.retypedPassword) {
-      alert("Passwords do not match");
-      return;
-    }
-
-    axios
-      .post("http://localhost:5000/signup", formData)
-      .then((response) => {
-        alert(response.data.message);
-      })
-      .catch((error) => {
-        console.error("There was an error!", error);
-      });
-  };
+  const [errorMessage, setErrorMessage] = useState(""); // For displaying errors
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage("");
+
+    // Basic form validation
+    const { password, retypedPassword } = formData;
+    if (password !== retypedPassword) {
+      setErrorMessage("Passwords do not match");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setErrorMessage(errorData.message || "An error occurred. Please try again.");
+        return;
+      }
+
+      // Redirect to sign in or home page after successful signup
+      navigate("/signin");
+    } catch (error) {
+      console.error("Error during signup process:", error);
+      setErrorMessage("An unexpected error occurred. Please try again.");
+    }
   };
 
   return (
@@ -111,6 +129,7 @@ const SignUp = () => {
         </div>
         <br />
         <button type="submit">Sign Up</button>
+        {errorMessage && <p className="error-message">{errorMessage}</p>}
       </form>
     </>
   );
