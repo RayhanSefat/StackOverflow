@@ -68,6 +68,15 @@ const Home = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await axios.post("http://localhost:5000/signout");
+      navigate("/signin");
+    } catch (err) {
+      setError("Error occurred while signing out.");
+    }
+  };
+
   return (
     <div className="home">
       <Helmet>
@@ -82,6 +91,7 @@ const Home = () => {
         </div>
         <Icon />
         <h1>Hello, {username}!</h1>
+        <button onClick={handleSignOut}>Sign Out</button> {/* Sign Out Button */}
         <form onSubmit={handleSubmit} className="upload-form">
           <div className="form-group">
             <label htmlFor="content">Post Content:</label>
