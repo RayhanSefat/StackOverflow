@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import Icon from "../../templates/icon";
 import { Link } from "react-router-dom";
 import "./home.css";
 
 const Home = () => {
-  const [description, setDescription] = useState(""); // New state for description
+  const [description, setDescription] = useState("");
   const [content, setContent] = useState("");
   const [extension, setExtension] = useState("txt");
   const [message, setMessage] = useState("");
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
+  const [posts, setPosts] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,7 +22,10 @@ const Home = () => {
         const response = await axios.get("http://localhost:5000/");
         setUsername(response.data.username);
       } catch (err) {
-        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        if (
+          err.response &&
+          (err.response.status === 401 || err.response.status === 403)
+        ) {
           navigate("/signin");
         } else {
           setError("Error fetching user information.");
@@ -29,30 +33,44 @@ const Home = () => {
       }
     };
 
+    const fetchPosts = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/posts");
+        setPosts(response.data.posts);
+      } catch (err) {
+        setError("Error fetching posts.");
+      }
+    };
+
     fetchUsername();
+    fetchPosts();
   }, [navigate]);
 
   const handleSaveContent = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
-
+  
     if (!description || !content || !extension) {
       setError("Please fill in all fields.");
       return;
     }
-
+  
     try {
       const response = await axios.post("http://localhost:5000/save_content", {
         description,
         content,
         extension,
       });
-
+  
       setMessage(response.data.message);
-      setDescription(""); // Clear description after saving
-      setContent(""); // Clear content after saving
-      setExtension("txt"); // Reset extension to default
+      setDescription("");
+      setContent("");
+      setExtension("txt");
+  
+      // Fetch the updated posts after saving content
+      const postsResponse = await axios.get("http://localhost:5000/posts");
+      setPosts(postsResponse.data.posts);
     } catch (err) {
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
         navigate("/signin");
@@ -61,7 +79,7 @@ const Home = () => {
       }
     }
   };
-
+  
   const handleSignOut = async () => {
     try {
       await axios.post("http://localhost:5000/signout");
@@ -85,7 +103,6 @@ const Home = () => {
         </div>
         <Icon />
         <h1>Hello, {username}!</h1>
-        <button onClick={handleSignOut}>Sign Out</button>
         <form onSubmit={handleSaveContent} className="content-form">
           <div className="form-group">
             <label htmlFor="description">Description:</label>
@@ -105,7 +122,11 @@ const Home = () => {
           </div>
           <div className="form-group">
             <label htmlFor="extension">Select File Extension:</label>
-            <select id="extension" value={extension} onChange={(e) => setExtension(e.target.value)}>
+            <select
+              id="extension"
+              value={extension}
+              onChange={(e) => setExtension(e.target.value)}
+            >
               <option value="txt">.txt</option>
               <option value="c">.c</option>
               <option value="cpp">.cpp</option>
@@ -114,11 +135,25 @@ const Home = () => {
               <option value="py">.py</option>
             </select>
           </div>
-          <button type="submit">Post</button>
+          <button type="submit">Save Content</button>
         </form>
-        {message && <p className="message">{message}</p>}
-        {error && <p className="error">{error}</p>}
-      </main>
+        {error && <p className="error-message">{error}</p>}
+        {message && <p className="success-message">{message}</p>}
+        <h2>Recent Posts:</h2>{" "}
+        <div className="post-list">
+          {" "}
+          {posts.map((post, index) => (
+            <div key={index} className="post-item">
+              {" "}
+              <h3>{post.username}</h3>{" "}
+              <p className="post-description">{post.description}</p>{" "}
+              <pre className="file-content">{post.content}</pre>{" "}
+              <small>{new Date(post.timestamp).toLocaleString()}</small>{" "}
+            </div>
+          ))}{" "}
+        </div>{" "}
+        <button onClick={handleSignOut}>Sign Out</button>
+      </main>{" "}
     </div>
   );
 };

@@ -3,6 +3,7 @@ from flask_cors import CORS
 from pymongo import MongoClient
 import bcrypt
 import os
+from datetime import datetime
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -12,9 +13,7 @@ CORS(app)
 client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
 db = client['user_database']
 users = db['users']
-
-# Define the file path for storing the username
-USERNAME_FILE = 'username.txt'
+files = db['files']
 
 # Define the directory for saving files
 SAVE_FOLDER = 'saved_files'
@@ -23,8 +22,9 @@ os.makedirs(SAVE_FOLDER, exist_ok=True)
 @app.route('/', methods=['GET'])
 def home():
     """Get the username of the signed-in user."""
-    if os.path.exists(USERNAME_FILE):
-        with open(USERNAME_FILE, 'r') as file:
+    username_file = f'username.txt'
+    if os.path.exists(username_file):
+        with open(username_file, 'r') as file:
             username = file.read().strip()
             return jsonify({"username": username}), 200
     return jsonify({"username": "Guest"}), 200
@@ -34,12 +34,10 @@ def signup():
     """Handle user signup."""
     data = request.json
     hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt())
-    
-    # Check if username already exists
+
     if users.find_one({"username": data['username']}):
         return jsonify({"message": "Username already exists"}), 409
 
-    # Insert new user into the database
     users.insert_one({
         "username": data['username'],
         "password": hashed_password
@@ -53,7 +51,7 @@ def signin():
     user = users.find_one({"username": data['username']})
 
     if user and bcrypt.checkpw(data['password'].encode('utf-8'), user['password']):
-        with open(USERNAME_FILE, 'w') as file:
+        with open('username.txt', 'w') as file:
             file.write(user['username'])
         return jsonify({"message": "Sign in successful"}), 200
     return jsonify({"message": "Invalid username or password"}), 401
@@ -61,8 +59,8 @@ def signin():
 @app.route('/signout', methods=['POST'])
 def signout():
     """Handle user sign-out."""
-    if os.path.exists(USERNAME_FILE):
-        os.remove(USERNAME_FILE)
+    if os.path.exists('username.txt'):
+        os.remove('username.txt')
     return jsonify({"message": "Signed out successfully"}), 200
 
 @app.route('/save_content', methods=['POST'])
@@ -78,8 +76,8 @@ def save_content():
             return jsonify({"message": "Description, content, and extension are required."}), 400
         
         username = None
-        if os.path.exists(USERNAME_FILE):
-            with open(USERNAME_FILE, 'r') as file:
+        if os.path.exists('username.txt'):
+            with open('username.txt', 'r') as file:
                 username = file.read().strip()
 
         if username is None:
@@ -93,18 +91,45 @@ def save_content():
         with open(file_path, 'w') as file:
             file.write(content)
 
-        # Optionally, store file info in the database
+        # Store file info in the database with timestamp
         db['files'].insert_one({
             "username": username,
             "filename": file_name,
             "filepath": file_path,
-            "description": description  # Save the description in the database
+            "description": description,
+            "timestamp": datetime.now()
         })
 
         return jsonify({"message": "File saved successfully.", "filename": file_name}), 201
 
     except Exception as e:
         return jsonify({"message": "An unexpected error occurred.", "error": str(e)}), 500
+
+@app.route('/posts', methods=['GET'])
+def get_posts():
+    """Fetch all posts except the current user's in descending order of time."""
+    username_file = 'username.txt'
+    if os.path.exists(username_file):
+        with open(username_file, 'r') as file:
+            current_user = file.read().strip()
+
+        # Fetch all posts except the current user's, sorted by timestamp (descending order)
+        posts = files.find({"username": {"$ne": current_user}}).sort("timestamp", -1)
+
+        # Build the response, including file content
+        post_list = []
+        for post in posts:
+            with open(post['filepath'], 'r') as content_file:
+                file_content = content_file.read()
+            post_list.append({
+                "username": post['username'],
+                "description": post['description'],
+                "content": file_content,
+                "timestamp": post['timestamp']
+            })
+
+        return jsonify({"posts": post_list}), 200
+    return jsonify({"message": "User not signed in."}), 401
 
 if __name__ == '__main__':
     app.run(debug=True)

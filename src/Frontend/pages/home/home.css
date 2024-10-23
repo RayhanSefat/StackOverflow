@@ -2,3 +2,37 @@ textarea {
     height: 300px;
     width: 1000px;
 }
+
+.home .post-list {
+    margin-top: 20px;
+  }
+  
+  .home .post-item {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+  }
+  
+  .home .post-item h3 {
+    color: #333;
+  }
+  
+  .home .post-description {
+    font-weight: bold;
+  }
+  
+  .home .file-content {
+    background-color: #eef;
+    padding: 10px;
+    border-radius: 5px;
+    white-space: pre-wrap;
+  }
+  
+  .home .error-message {
+    color: red;
+  }
+  
+  .home .success-message {
+    color: green;
+  }
