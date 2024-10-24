@@ -1,20 +1,19 @@
 .notifications-page {
-    margin: 20px;
-  }
-  
-  .notifications-list {
-    list-style-type: none;
-    padding: 0;
-  }
-  
-  .notifications-list li {
-    padding: 10px;
-    margin: 10px 0;
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-  }
-  
-  .error-message {
-    color: red;
-  }
-  
+  margin: 20px;
+}
+
+.notifications-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.notifications-list li {
+  padding: 10px;
+  margin: 10px 0;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+}
+
+.error-message {
+  color: red;
+}
