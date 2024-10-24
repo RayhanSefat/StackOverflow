@@ -138,11 +138,27 @@ def mark_notifications_seen():
         with open(username_file, 'r') as file:
             current_user = file.read().strip()
 
+        # Mark all notifications as seen for the current user
         users.update_one(
             {"username": current_user},
             {"$set": {"notifications.$[].seen": True}}
         )
         return jsonify({"message": "All notifications marked as seen."}), 200
+    return jsonify({"message": "User not signed in."}), 401
+
+@app.route('/notifications/unseen_count', methods=['GET'])
+def get_unseen_notification_count():
+    """Fetch the count of unseen notifications for the signed-in user."""
+    username_file = 'username.txt'
+    if os.path.exists(username_file):
+        with open(username_file, 'r') as file:
+            current_user = file.read().strip()
+
+        # Fetch unseen notifications count
+        user = users.find_one({"username": current_user})
+        if user:
+            unseen_count = sum(1 for notification in user.get('notifications', []) if not notification.get('seen', False))
+            return jsonify({"unseen_count": unseen_count}), 200
     return jsonify({"message": "User not signed in."}), 401
 
 @app.route('/posts', methods=['GET'])

@@ -14,8 +14,10 @@ const Home = () => {
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [posts, setPosts] = useState([]);
+  const [unseenCount, setUnseenCount] = useState(0); // Track the unseen notifications count
   const navigate = useNavigate();
 
+  // Fetch username and unseen notification count when the component loads
   useEffect(() => {
     const fetchUsername = async () => {
       try {
@@ -33,6 +35,17 @@ const Home = () => {
       }
     };
 
+    const fetchUnseenNotificationCount = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/notifications/unseen_count"
+        );
+        setUnseenCount(response.data.unseen_count);
+      } catch (err) {
+        setError("Error fetching unseen notifications.");
+      }
+    };
+
     const fetchPosts = async () => {
       try {
         const response = await axios.get("http://localhost:5000/posts");
@@ -43,6 +56,7 @@ const Home = () => {
     };
 
     fetchUsername();
+    fetchUnseenNotificationCount();
     if (username) {
       fetchPosts();
     }
@@ -101,7 +115,7 @@ const Home = () => {
       </Helmet>
       <Icon />
       <main>
-        {(username === "Guest") ? (
+        {username === "Guest" ? (
           <div>
             <div>
               <Link to="/signup">Sign Up</Link>
@@ -112,8 +126,15 @@ const Home = () => {
           </div>
         ) : (
           <>
-            <div>
-              <Link to="/notifications">Notifications</Link>
+            <div className="notifications-link">
+              <Link to="/notifications">
+                Notifications{" "}
+                {unseenCount > 0 && (
+                  <span className="unseen-count" style={{ color: "red" }}>
+                    {unseenCount}
+                  </span>
+                )}
+              </Link>
             </div>
             <h1>Hello, {username}!</h1>
             <form onSubmit={handleSaveContent} className="content-form">
