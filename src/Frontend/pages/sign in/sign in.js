@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const SignIn = () => {
   const [username, setUsername] = useState("");
@@ -80,6 +80,8 @@ const SignIn = () => {
           />
         </div>
         <button type="submit">Sign In</button>
+
+        <p>Don't have and account? <Link to="/signup">Sign Up</Link></p>
       </form>
     </div>
   );

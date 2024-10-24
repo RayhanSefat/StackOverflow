@@ -3,6 +3,7 @@ from flask_cors import CORS
 from pymongo import MongoClient
 import bcrypt
 import os
+import uuid
 from datetime import datetime
 
 # Initialize Flask application
@@ -11,7 +12,7 @@ CORS(app)
 
 # Connect to MongoDB
 client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
-db = client['user_database']
+db = client['stack-overflow']
 users = db['users']
 files = db['files']
 
@@ -84,7 +85,8 @@ def save_content():
             return jsonify({"message": "User not signed in."}), 401
         
         # Define the file name and path
-        file_name = f"{username}_file.{extension}"
+        unique_id = uuid.uuid4()  # You can also use datetime.now().timestamp() if preferred
+        file_name = f"{username}_file_{unique_id}.{extension}"
         file_path = os.path.join(SAVE_FOLDER, file_name)
 
         # Save the content to a file
