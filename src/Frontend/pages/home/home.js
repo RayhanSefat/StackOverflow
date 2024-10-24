@@ -112,6 +112,9 @@ const Home = () => {
           </div>
         ) : (
           <>
+            <div>
+              <Link to="/notifications">Notifications</Link>
+            </div>
             <h1>Hello, {username}!</h1>
             <form onSubmit={handleSaveContent} className="content-form">
               <div className="form-group">

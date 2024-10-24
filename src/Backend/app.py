@@ -100,10 +100,50 @@ def save_content():
             "timestamp": datetime.now()
         })
 
+        # Add notification for other users
+        users_to_notify = users.find({"username": {"$ne": username}})
+        for user in users_to_notify:
+            users.update_one(
+                {"username": user['username']},
+                {"$push": {"notifications": {
+                    "message": f"New post by {username}: {description}",
+                    "timestamp": datetime.now(),
+                    "seen": False
+                }}}
+            )
+
         return jsonify({"message": "File saved successfully.", "filename": file_name}), 201
 
     except Exception as e:
         return jsonify({"message": "An unexpected error occurred.", "error": str(e)}), 500
+
+@app.route('/notifications', methods=['GET'])
+def get_notifications():
+    """Fetch unread notifications for the signed-in user."""
+    username_file = 'username.txt'
+    if os.path.exists(username_file):
+        with open(username_file, 'r') as file:
+            current_user = file.read().strip()
+
+        user = users.find_one({"username": current_user})
+        if user:
+            return jsonify({"notifications": user.get('notifications', [])}), 200
+    return jsonify({"message": "User not signed in."}), 401
+
+@app.route('/notifications/mark_seen', methods=['POST'])
+def mark_notifications_seen():
+    """Mark all notifications as seen for the signed-in user."""
+    username_file = 'username.txt'
+    if os.path.exists(username_file):
+        with open(username_file, 'r') as file:
+            current_user = file.read().strip()
+
+        users.update_one(
+            {"username": current_user},
+            {"$set": {"notifications.$[].seen": True}}
+        )
+        return jsonify({"message": "All notifications marked as seen."}), 200
+    return jsonify({"message": "User not signed in."}), 401
 
 @app.route('/posts', methods=['GET'])
 def get_posts():
