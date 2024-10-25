@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
+from minio import Minio
 import bcrypt
 import os
 import uuid
@@ -16,9 +17,18 @@ db = client['stack-overflow']
 users = db['users']
 files = db['files']
 
-# Define the directory for saving files
-SAVE_FOLDER = 'saved_files'
-os.makedirs(SAVE_FOLDER, exist_ok=True)
+# Initialize MinIO client
+minio_client = Minio(
+    os.getenv("MINIO_ENDPOINT", "localhost:9000"),
+    access_key=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
+    secret_key=os.getenv("MINIO_SECRET_KEY", "minioadmin"),
+    secure=False
+)
+
+# Ensure the bucket exists
+bucket_name = "stack-overflow"
+if not minio_client.bucket_exists(bucket_name):
+    minio_client.make_bucket(bucket_name)
 
 @app.route('/', methods=['GET'])
 def home():
@@ -66,7 +76,7 @@ def signout():
 
 @app.route('/save_content', methods=['POST'])
 def save_content():
-    """Handle saving the pasted content as a file."""
+    """Handle saving the pasted content as a file on MinIO."""
     try:
         data = request.json
         description = data.get('description')
@@ -83,38 +93,38 @@ def save_content():
 
         if username is None:
             return jsonify({"message": "User not signed in."}), 401
-        
-        # Define the file name and path
-        unique_id = uuid.uuid4()  # You can also use datetime.now().timestamp() if preferred
-        file_name = f"{username}_file_{unique_id}.{extension}"
-        file_path = os.path.join(SAVE_FOLDER, file_name)
 
-        # Save the content to a file
-        with open(file_path, 'w') as file:
+        # Define file name
+        unique_id = uuid.uuid4()
+        file_name = f"{username}_file_{unique_id}.{extension}"
+
+        # Save content to a temporary file
+        temp_file_path = os.path.join('tmp', file_name)
+        with open(temp_file_path, 'w') as file:
             file.write(content)
 
-        # Store file info in the database with timestamp
+        # Upload file to MinIO
+        minio_client.fput_object(
+            bucket_name=bucket_name,
+            object_name=file_name,
+            file_path=temp_file_path,
+            content_type="text/plain"
+        )
+
+        # Clean up the local temporary file
+        os.remove(temp_file_path)
+
+        # Store the file path (URL) in MongoDB
+        file_url = minio_client.presigned_get_object(bucket_name, file_name)
         db['files'].insert_one({
             "username": username,
             "filename": file_name,
-            "filepath": file_path,
+            "file_url": file_url,
             "description": description,
             "timestamp": datetime.now()
         })
 
-        # Add notification for other users
-        users_to_notify = users.find({"username": {"$ne": username}})
-        for user in users_to_notify:
-            users.update_one(
-                {"username": user['username']},
-                {"$push": {"notifications": {
-                    "message": f"New post by {username}: {description}",
-                    "timestamp": datetime.now(),
-                    "seen": False
-                }}}
-            )
-
-        return jsonify({"message": "File saved successfully.", "filename": file_name}), 201
+        return jsonify({"message": "File saved successfully.", "file_url": file_url}), 201
 
     except Exception as e:
         return jsonify({"message": "An unexpected error occurred.", "error": str(e)}), 500
@@ -174,15 +184,13 @@ def get_posts():
         # Fetch all posts except the current user's, sorted by timestamp (descending order)
         posts = files.find({"username": {"$ne": current_user}}).sort("timestamp", -1)
 
-        # Build the response, including file content
+        # Build the response, including file content from MinIO
         post_list = []
         for post in posts:
-            with open(post['filepath'], 'r') as content_file:
-                file_content = content_file.read()
             post_list.append({
                 "username": post['username'],
                 "description": post['description'],
-                "content": file_content,
+                "file_url": post['file_url'],
                 "timestamp": post['timestamp']
             })
 
