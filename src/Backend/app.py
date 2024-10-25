@@ -85,7 +85,7 @@ def save_content():
 
         if not description or not content or not extension:
             return jsonify({"message": "Description, content, and extension are required."}), 400
-        
+
         username = None
         if os.path.exists('username.txt'):
             with open('username.txt', 'r') as file:
@@ -103,7 +103,7 @@ def save_content():
         with open(temp_file_path, 'w') as file:
             file.write(content)
 
-        # Upload file to MinIO
+        # Upload file to MinIO without making it public
         minio_client.fput_object(
             bucket_name=bucket_name,
             object_name=file_name,
@@ -114,17 +114,27 @@ def save_content():
         # Clean up the local temporary file
         os.remove(temp_file_path)
 
-        # Store the file path (URL) in MongoDB
-        file_url = minio_client.presigned_get_object(bucket_name, file_name)
+        # Store the file name (not URL) in MongoDB for security
         db['files'].insert_one({
             "username": username,
             "filename": file_name,
-            "file_url": file_url,
             "description": description,
             "timestamp": datetime.now()
         })
 
-        return jsonify({"message": "File saved successfully.", "file_url": file_url}), 201
+        # Add notification for other users
+        users_to_notify = users.find({"username": {"$ne": username}})
+        for user in users_to_notify:
+            users.update_one(
+                {"username": user['username']},
+                {"$push": {"notifications": {
+                    "message": f"New post by {username}: {description}",
+                    "timestamp": datetime.now(),
+                    "seen": False
+                }}}
+            )
+
+        return jsonify({"message": "File saved successfully."}), 201
 
     except Exception as e:
         return jsonify({"message": "An unexpected error occurred.", "error": str(e)}), 500
@@ -175,7 +185,7 @@ def get_unseen_notification_count():
 
 @app.route('/posts', methods=['GET'])
 def get_posts():
-    """Fetch all posts except the current user's in descending order of time."""
+    """Fetch all posts except the current user's in descending order of time, including file content."""
     username_file = 'username.txt'
     if os.path.exists(username_file):
         with open(username_file, 'r') as file:
@@ -187,14 +197,48 @@ def get_posts():
         # Build the response, including file content from MinIO
         post_list = []
         for post in posts:
-            post_list.append({
-                "username": post['username'],
-                "description": post['description'],
-                "file_url": post['file_url'],
-                "timestamp": post['timestamp']
-            })
+            try:
+                # Retrieve the file content from MinIO
+                file_data = minio_client.get_object(bucket_name, post['filename'])
+                content = file_data.read().decode("utf-8")
+                file_data.close()
+
+                post_list.append({
+                    "username": post['username'],
+                    "description": post['description'],
+                    "content": content,  # Include the file content
+                    "timestamp": post['timestamp']
+                })
+            except Exception as e:
+                # If there is an error reading the file, skip this post
+                continue
 
         return jsonify({"posts": post_list}), 200
+    return jsonify({"message": "User not signed in."}), 401
+
+@app.route('/fetch_file/<filename>', methods=['GET'])
+def fetch_file(filename):
+    """Allow the owner to view their own file content securely."""
+    username_file = 'username.txt'
+    if os.path.exists(username_file):
+        with open(username_file, 'r') as file:
+            current_user = file.read().strip()
+
+        # Fetch the file document
+        file_doc = files.find_one({"filename": filename, "username": current_user})
+        if not file_doc:
+            return jsonify({"message": "File not found or access denied."}), 404
+
+        # Retrieve the file content from MinIO
+        try:
+            file_data = minio_client.get_object(bucket_name, filename)
+            content = file_data.read().decode("utf-8")
+            file_data.close()
+        except Exception as e:
+            return jsonify({"message": "Could not retrieve file.", "error": str(e)}), 500
+
+        return jsonify({"content": content, "description": file_doc['description']}), 200
+
     return jsonify({"message": "User not signed in."}), 401
 
 if __name__ == '__main__':
