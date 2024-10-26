@@ -14,7 +14,9 @@ const Home = () => {
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [posts, setPosts] = useState([]);
-  const [unseenCount, setUnseenCount] = useState(0); // Track the unseen notifications count
+  const [unseenCount, setUnseenCount] = useState(0);
+  const [uploadMode, setUploadMode] = useState("paste"); // New state for upload mode
+  const [file, setFile] = useState(null); // New state for file upload
   const navigate = useNavigate();
 
   // Fetch username and unseen notification count when the component loads
@@ -67,24 +69,62 @@ const Home = () => {
     setError("");
     setMessage("");
 
-    if (!description || !content || !extension) {
+    if (!description || !extension || (uploadMode === "paste" && !content) || (uploadMode === "upload" && !file)) {
       setError("Please fill in all fields.");
       return;
     }
 
+    let fileContent = content;
+    if (uploadMode === "upload" && file) {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        fileContent = reader.result;
+
+        try {
+          const response = await axios.post("http://localhost:5000/save_content", {
+            description,
+            content: fileContent,
+            extension,
+          });
+
+          setMessage(response.data.message);
+          setDescription("");
+          setContent("");
+          setFile(null);
+          setExtension("txt");
+
+          // Fetch the updated posts after saving content
+          const postsResponse = await axios.get("http://localhost:5000/posts");
+          setPosts(postsResponse.data.posts);
+        } catch (err) {
+          if (
+            err.response &&
+            (err.response.status === 401 || err.response.status === 403)
+          ) {
+            navigate("/signin");
+          } else {
+            setError("Error occurred while saving content.");
+          }
+        }
+      };
+      reader.readAsText(file);
+      return;
+    }
+
+    // If pasting content, proceed with posting directly
     try {
       const response = await axios.post("http://localhost:5000/save_content", {
         description,
-        content,
+        content: fileContent,
         extension,
       });
 
       setMessage(response.data.message);
       setDescription("");
       setContent("");
+      setFile(null);
       setExtension("txt");
 
-      // Fetch the updated posts after saving content
       const postsResponse = await axios.get("http://localhost:5000/posts");
       setPosts(postsResponse.data.posts);
     } catch (err) {
@@ -147,13 +187,34 @@ const Home = () => {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="content">Paste Content:</label>
-                <textarea
-                  id="content"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                />
+                <label>Select Upload Mode:</label>
+                <select
+                  value={uploadMode}
+                  onChange={(e) => setUploadMode(e.target.value)}
+                >
+                  <option value="paste">Paste Content</option>
+                  <option value="upload">Upload File</option>
+                </select>
               </div>
+              {uploadMode === "paste" ? (
+                <div className="form-group">
+                  <label htmlFor="content">Paste Content:</label>
+                  <textarea
+                    id="content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label htmlFor="file">Choose File:</label>
+                  <input
+                    type="file"
+                    id="file"
+                    onChange={(e) => setFile(e.target.files[0])}
+                  />
+                </div>
+              )}
               <div className="form-group">
                 <label htmlFor="extension">Select File Extension:</label>
                 <select
