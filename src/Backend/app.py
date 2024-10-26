@@ -5,7 +5,8 @@ from minio import Minio
 import bcrypt
 import os
 import uuid
-from datetime import datetime
+import threading
+from datetime import datetime, timedelta, time
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -292,6 +293,25 @@ def fetch_file(filename):
         return jsonify({"content": content, "description": file_doc['description']}), 200
 
     return jsonify({"message": "User not signed in."}), 401
+
+def cleanup_old_notifications():
+    """Delete notifications older than 30 days for all users."""
+    while True:
+        # Define the threshold date
+        threshold_date = datetime.now() - timedelta(days=30)
+        
+        # Update each user by removing notifications older than 30 days
+        users.update_many(
+            {},
+            {"$pull": {"notifications": {"timestamp": {"$lt": threshold_date}}}}
+        )
+        
+        # Sleep for 24 hours before running the next cleanup
+        time.sleep(86400)  # 86400 seconds = 24 hours
+
+# Start the cleanup job in a separate thread
+cleanup_thread = threading.Thread(target=cleanup_old_notifications, daemon=True)
+cleanup_thread.start()
 
 if __name__ == '__main__':
     app.run(debug=True)
