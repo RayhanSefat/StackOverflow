@@ -6,7 +6,7 @@ class Icon extends React.Component {
     return (
       <>
         <div className="icon">
-          <img className="logo" src="img/so_logo.png" alt="logo" />
+          <img className="logo" src="img/so_logo.png" alt="" />
           Stack Overflow
         </div>
         <br />

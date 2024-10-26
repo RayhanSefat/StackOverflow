@@ -37,13 +37,21 @@ const Notifications = () => {
     }
   };
 
+  const handleNotificationClick = (postId) => {
+    navigate(`/post/${postId}`);
+  };
+
   return (
     <div className="notifications-page">
       <h1>Notifications</h1>
       {notifications.length > 0 ? (
         <ul className="notifications-list">
           {notifications.map((notification, index) => (
-            <li key={index}>
+            <li
+              key={index}
+              onClick={() => handleNotificationClick(notification.post_id)}
+              className="notification-item"
+            >
               {notification.message} -{" "}
               {new Date(
                 new Date(notification.timestamp).setHours(

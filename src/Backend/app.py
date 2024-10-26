@@ -95,7 +95,8 @@ def save_content():
             return jsonify({"message": "User not signed in."}), 401
 
         # Define file name
-        unique_id = uuid.uuid4()
+        uid_str = uuid.uuid4().urn
+        unique_id = uid_str[9:]
         file_name = f"{username}_file_{unique_id}.{extension}"
 
         # Save content to a temporary file
@@ -116,6 +117,7 @@ def save_content():
 
         # Store the file name (not URL) in MongoDB for security
         db['files'].insert_one({
+            "post_id": unique_id,
             "username": username,
             "filename": file_name,
             "description": description,
@@ -130,6 +132,7 @@ def save_content():
                 {"$push": {"notifications": {
                     "message": f"New post by {username}: {description}",
                     "timestamp": datetime.now(),
+                    "post_id": unique_id,
                     "seen": False
                 }}}
             )
@@ -138,6 +141,51 @@ def save_content():
 
     except Exception as e:
         return jsonify({"message": "An unexpected error occurred.", "error": str(e)}), 500
+
+@app.route('/post/<post_id>', methods=['GET'])
+def get_post(post_id):
+    """Retrieve a post by its post_id."""
+    try:
+        # Find the file metadata in MongoDB
+        post = db['files'].find_one({"post_id": post_id})
+
+        if not post:
+            return jsonify({"message": "Post not found."}), 404
+
+        # Retrieve file name and description from MongoDB
+        file_name = post['filename']
+        description = post['description']
+        username = post['username']
+        timestamp = post['timestamp']
+
+        # Download file content from MinIO to a temporary location
+        temp_file_path = os.path.join('tmp', file_name)
+        minio_client.fget_object(
+            bucket_name=bucket_name,
+            object_name=file_name,
+            file_path=temp_file_path
+        )
+
+        # Read the content from the downloaded file
+        with open(temp_file_path, 'r') as file:
+            content = file.read()
+
+        # Clean up the temporary file after reading
+        os.remove(temp_file_path)
+
+        # Prepare response data
+        response_data = {
+            "post_id": post_id,
+            "username": username,
+            "description": description,
+            "content": content,
+            "timestamp": timestamp
+        }
+
+        return jsonify(response_data), 200
+
+    except Exception as e:
+        return jsonify({"message": "An error occurred while retrieving the post.", "error": str(e)}), 500
 
 @app.route('/notifications', methods=['GET'])
 def get_notifications():
@@ -148,8 +196,10 @@ def get_notifications():
             current_user = file.read().strip()
 
         user = users.find_one({"username": current_user})
+        notifications = user.get('notifications')
+        notifications = notifications[::-1]
         if user:
-            return jsonify({"notifications": user.get('notifications', [])}), 200
+            return jsonify({"notifications": notifications}), 200
     return jsonify({"message": "User not signed in."}), 401
 
 @app.route('/notifications/mark_seen', methods=['POST'])
