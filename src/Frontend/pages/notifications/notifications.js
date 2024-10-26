@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Icon from "../../templates/icon";
 import "./notifications.css";
 
 const Notifications = () => {
@@ -34,6 +35,7 @@ const Notifications = () => {
 
   return (
     <div className="notifications-page">
+      <Icon />
       <h1>Notifications</h1>
       {notifications.length > 0 ? (
         <ul className="notifications-list">

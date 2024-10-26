@@ -1,18 +1,21 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import "./icon.css";
 
-class Icon extends React.Component {
-  render() {
-    return (
-      <>
-        <div className="icon">
-          <img className="logo" src="img/so_logo.png" alt="" />
+function Icon() {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <div className="icon">
+        <img className="logo" src="img/so_logo.png" alt="" />
+        <span className="stack-link" onClick={() => navigate("/")}>
           Stack Overflow
-        </div>
-        <br />
-      </>
-    );
-  }
+        </span>
+      </div>
+      <br />
+    </>
+  );
 }
 
 export default Icon;

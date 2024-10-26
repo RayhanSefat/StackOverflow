@@ -18,7 +18,7 @@ Before you begin, make sure you have the following installed:
 
 ```bash
 git clone https://github.com/RayhanSefat/StackOverflow
-cd repo-name
+cd StackOverflow
 ```
 
 # Flask configuration
