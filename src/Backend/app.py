@@ -244,14 +244,11 @@ def get_posts():
         with open(username_file, 'r') as file:
             current_user = file.read().strip()
 
-        # Fetch all posts except the current user's, sorted by timestamp (descending order)
         posts = files.find({"username": {"$ne": current_user}}).sort("timestamp", -1)
 
-        # Build the response, including file content from MinIO
         post_list = []
         for post in posts:
             try:
-                # Retrieve the file content from MinIO
                 file_data = minio_client.get_object(bucket_name, post['filename'])
                 content = file_data.read().decode("utf-8")
                 file_data.close()
@@ -263,7 +260,6 @@ def get_posts():
                     "timestamp": post['timestamp']
                 })
             except Exception as e:
-                # If there is an error reading the file, skip this post
                 continue
 
         return jsonify({"posts": post_list}), 200
@@ -277,12 +273,10 @@ def fetch_file(filename):
         with open(username_file, 'r') as file:
             current_user = file.read().strip()
 
-        # Fetch the file document
         file_doc = files.find_one({"filename": filename, "username": current_user})
         if not file_doc:
             return jsonify({"message": "File not found or access denied."}), 404
 
-        # Retrieve the file content from MinIO
         try:
             file_data = minio_client.get_object(bucket_name, filename)
             content = file_data.read().decode("utf-8")
@@ -297,19 +291,15 @@ def fetch_file(filename):
 def cleanup_old_notifications():
     """Delete notifications older than 30 days for all users."""
     while True:
-        # Define the threshold date
         threshold_date = datetime.now() - timedelta(days=30)
         
-        # Update each user by removing notifications older than 30 days
         users.update_many(
             {},
             {"$pull": {"notifications": {"timestamp": {"$lt": threshold_date}}}}
         )
         
-        # Sleep for 24 hours before running the next cleanup
-        time.sleep(86400)  # 86400 seconds = 24 hours
+        time.sleep(86400)  
 
-# Start the cleanup job in a separate thread
 cleanup_thread = threading.Thread(target=cleanup_old_notifications, daemon=True)
 cleanup_thread.start()
 
