@@ -28,15 +28,6 @@ const Notifications = () => {
     fetchNotifications();
   }, [navigate]);
 
-  const markNotificationsSeen = async () => {
-    try {
-      await axios.post("http://localhost:5000/notifications/mark_seen");
-      setNotifications([]); // Clear notifications after marking them as seen
-    } catch (err) {
-      setError("Error marking notifications as seen.");
-    }
-  };
-
   const handleNotificationClick = (postId) => {
     navigate(`/post/${postId}`);
   };
@@ -63,9 +54,6 @@ const Notifications = () => {
         </ul>
       ) : (
         <p>No new notifications</p>
-      )}
-      {notifications.length > 0 && (
-        <button onClick={markNotificationsSeen}>Mark all as seen</button>
       )}
       {error && <p className="error-message">{error}</p>}
     </div>

@@ -195,6 +195,8 @@ def get_notifications():
         with open(username_file, 'r') as file:
             current_user = file.read().strip()
 
+        mark_notifications_seen()
+
         user = users.find_one({"username": current_user})
         notifications = user.get('notifications')
         notifications = notifications[::-1]
