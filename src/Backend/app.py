@@ -131,7 +131,7 @@ def save_content():
             users.update_one(
                 {"username": user['username']},
                 {"$push": {"notifications": {
-                    "message": f"New post by {username}: {description}",
+                    "message": f"New post by {username}",
                     "timestamp": datetime.now(),
                     "post_id": unique_id,
                     "seen": False
