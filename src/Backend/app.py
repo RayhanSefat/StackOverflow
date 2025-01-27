@@ -6,7 +6,8 @@ import bcrypt
 import os
 import uuid
 import threading
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
+from time import sleep
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -29,7 +30,10 @@ minio_client = Minio(
 # Ensure the bucket exists
 bucket_name = "stack-overflow"
 if not minio_client.bucket_exists(bucket_name):
+    print('Creating a bucket...')
     minio_client.make_bucket(bucket_name)
+
+print("MinIO connected successfully")
 
 @app.route('/', methods=['GET'])
 def home():
@@ -265,29 +269,6 @@ def get_posts():
         return jsonify({"posts": post_list}), 200
     return jsonify({"message": "User not signed in."}), 401
 
-@app.route('/fetch_file/<filename>', methods=['GET'])
-def fetch_file(filename):
-    """Allow the owner to view their own file content securely."""
-    username_file = 'username.txt'
-    if os.path.exists(username_file):
-        with open(username_file, 'r') as file:
-            current_user = file.read().strip()
-
-        file_doc = files.find_one({"filename": filename, "username": current_user})
-        if not file_doc:
-            return jsonify({"message": "File not found or access denied."}), 404
-
-        try:
-            file_data = minio_client.get_object(bucket_name, filename)
-            content = file_data.read().decode("utf-8")
-            file_data.close()
-        except Exception as e:
-            return jsonify({"message": "Could not retrieve file.", "error": str(e)}), 500
-
-        return jsonify({"content": content, "description": file_doc['description']}), 200
-
-    return jsonify({"message": "User not signed in."}), 401
-
 def cleanup_old_notifications():
     """Delete notifications older than 30 days for all users."""
     while True:
@@ -298,7 +279,7 @@ def cleanup_old_notifications():
             {"$pull": {"notifications": {"timestamp": {"$lt": threshold_date}}}}
         )
         
-        time.sleep(86400)  
+        sleep(86400)  
 
 cleanup_thread = threading.Thread(target=cleanup_old_notifications, daemon=True)
 cleanup_thread.start()
