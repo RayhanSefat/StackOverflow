@@ -18,6 +18,7 @@ client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
 db = client['stack-overflow']
 users = db['users']
 files = db['files']
+notifications = db['notifications']
 
 # Initialize MinIO client
 minio_client = Minio(
@@ -132,15 +133,13 @@ def save_content():
         # Add notification for other users
         users_to_notify = users.find({"username": {"$ne": username}})
         for user in users_to_notify:
-            users.update_one(
-                {"username": user['username']},
-                {"$push": {"notifications": {
-                    "message": f"New post by {username}",
-                    "timestamp": datetime.now(),
-                    "post_id": unique_id,
-                    "seen": False
-                }}}
-            )
+            notifications.insert_one({
+                "username": user['username'],
+                "message": f"New post by {username}",
+                "timestamp": datetime.now(),
+                "post_id": unique_id,
+                "seen": False
+            })
 
         return jsonify({"message": "File saved successfully."}), 201
 
@@ -197,19 +196,28 @@ def get_notifications():
     """Fetch unread notifications for the signed-in user."""
     username_file = 'username.txt'
     if os.path.exists(username_file):
-        with open(username_file, 'r') as file:
-            current_user = file.read().strip()
+        try:
+            with open(username_file, 'r') as file:
+                current_user = file.read().strip()
 
-        mark_notifications_seen()
+            print("Fetching notifications for", current_user)
 
-        user = users.find_one({"username": current_user})
-        notifications = user.get('notifications')
-        notifications = notifications[::-1]
-        if user:
-            return jsonify({"notifications": notifications}), 200
+            # Fetch unread notifications from the notifications collection
+            unread_notifications = list(notifications.find({
+                "username": current_user
+            }).sort("timestamp", -1))
+
+            # Convert ObjectId to string for JSON serialization
+            for notification in unread_notifications:
+                notification["_id"] = str(notification["_id"])
+
+            mark_notifications_seen()
+
+            return jsonify({"notifications": unread_notifications}), 200
+        except Exception as e:
+            print("Something is wrong with the database,", e)
     return jsonify({"message": "User not signed in."}), 401
 
-@app.route('/notifications/mark_seen', methods=['POST'])
 def mark_notifications_seen():
     """Mark all notifications as seen for the signed-in user."""
     username_file = 'username.txt'
@@ -217,10 +225,12 @@ def mark_notifications_seen():
         with open(username_file, 'r') as file:
             current_user = file.read().strip()
 
-        # Mark all notifications as seen for the current user
-        users.update_one(
+        print("Marking notifications seen for", current_user)
+
+        # Update all notifications for the current user as seen
+        notifications.update_many(
             {"username": current_user},
-            {"$set": {"notifications.$[].seen": True}}
+            {"$set": {"seen": True}}
         )
         return jsonify({"message": "All notifications marked as seen."}), 200
     return jsonify({"message": "User not signed in."}), 401
@@ -230,14 +240,18 @@ def get_unseen_notification_count():
     """Fetch the count of unseen notifications for the signed-in user."""
     username_file = 'username.txt'
     if os.path.exists(username_file):
-        with open(username_file, 'r') as file:
-            current_user = file.read().strip()
+        try:
+            with open(username_file, 'r') as file:
+                current_user = file.read().strip()
 
-        # Fetch unseen notifications count
-        user = users.find_one({"username": current_user})
-        if user:
-            unseen_count = sum(1 for notification in user.get('notifications', []) if not notification.get('seen', False))
+            # Fetch unseen notifications count
+            unseen_count = notifications.count_documents({
+                "username": current_user,
+                "seen": False
+            })
             return jsonify({"unseen_count": unseen_count}), 200
+        except Exception as e:
+            print("Something is wrong with the database,", e)
     return jsonify({"message": "User not signed in."}), 401
 
 @app.route('/posts', methods=['GET'])
@@ -270,16 +284,11 @@ def get_posts():
     return jsonify({"message": "User not signed in."}), 401
 
 def cleanup_old_notifications():
-    """Delete notifications older than 30 days for all users."""
+    """Delete notifications older than 30 days."""
     while True:
         threshold_date = datetime.now() - timedelta(days=30)
-        
-        users.update_many(
-            {},
-            {"$pull": {"notifications": {"timestamp": {"$lt": threshold_date}}}}
-        )
-        
-        sleep(86400)  
+        notifications.delete_many({"timestamp": {"$lt": threshold_date}})
+        sleep(86400)  # Run daily
 
 cleanup_thread = threading.Thread(target=cleanup_old_notifications, daemon=True)
 cleanup_thread.start()

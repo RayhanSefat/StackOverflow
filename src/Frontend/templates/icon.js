@@ -7,9 +7,9 @@ function Icon() {
 
   return (
     <>
-      <div className="icon">
+      <div className="icon" onClick={() => navigate("/")}>
         <img className="logo" src="img/so_logo.png" alt="" />
-        <span className="stack-link" onClick={() => navigate("/")}>
+        <span className="stack-link">
           Stack Overflow
         </span>
       </div>
