@@ -12,7 +12,7 @@ const Notifications = () => {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/notifications");
+        const response = await axios.get("http://localhost:5003/notifications");
         setNotifications(response.data.notifications);
       } catch (err) {
         if (
