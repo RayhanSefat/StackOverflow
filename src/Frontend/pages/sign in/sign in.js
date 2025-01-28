@@ -22,7 +22,7 @@ const SignIn = () => {
     try {
       console.log("Sending login request:", { username, password });
 
-      const response = await fetch("http://localhost:5000/signin", {
+      const response = await fetch("http://localhost:5001/signin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -43,7 +43,6 @@ const SignIn = () => {
         return;
       }
 
-      const data = await response.json();
       console.log("Login successful");
 
       // Navigate to home or dashboard after successful login

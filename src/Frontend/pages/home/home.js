@@ -23,7 +23,7 @@ const Home = () => {
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/");
+        const response = await axios.get("http://localhost:5002/");
         setUsername(response.data.username);
       } catch (err) {
         if (
@@ -40,7 +40,7 @@ const Home = () => {
     const fetchUnseenNotificationCount = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:5000/notifications/unseen_count"
+          "http://localhost:5003/notifications/unseen_count"
         );
         setUnseenCount(response.data.unseen_count);
       } catch (err) {
@@ -50,7 +50,7 @@ const Home = () => {
 
     const fetchPosts = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/posts");
+        const response = await axios.get("http://localhost:5002/posts");
         setPosts(response.data.posts);
       } catch (err) {
         setError("Error fetching posts.");
@@ -81,7 +81,7 @@ const Home = () => {
         fileContent = reader.result;
 
         try {
-          const response = await axios.post("http://localhost:5000/save_content", {
+          const response = await axios.post("http://localhost:5002/save_content", {
             description,
             content: fileContent,
             extension,
@@ -94,7 +94,7 @@ const Home = () => {
           setExtension("txt");
 
           // Fetch the updated posts after saving content
-          const postsResponse = await axios.get("http://localhost:5000/posts");
+          const postsResponse = await axios.get("http://localhost:5002/posts");
           setPosts(postsResponse.data.posts);
         } catch (err) {
           if (
@@ -113,7 +113,7 @@ const Home = () => {
 
     // If pasting content, proceed with posting directly
     try {
-      const response = await axios.post("http://localhost:5000/save_content", {
+      const response = await axios.post("http://localhost:5002/save_content", {
         description,
         content: fileContent,
         extension,
@@ -125,7 +125,7 @@ const Home = () => {
       setFile(null);
       setExtension("txt");
 
-      const postsResponse = await axios.get("http://localhost:5000/posts");
+      const postsResponse = await axios.get("http://localhost:5002/posts");
       setPosts(postsResponse.data.posts);
     } catch (err) {
       if (
@@ -141,7 +141,7 @@ const Home = () => {
 
   const handleSignOut = async () => {
     try {
-      await axios.post("http://localhost:5000/signout");
+      await axios.post("http://localhost:5001/signout");
       navigate("/signin");
     } catch (err) {
       setError("Error occurred while signing out.");
