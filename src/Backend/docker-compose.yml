@@ -1,0 +1,97 @@
+version: '3.9'
+services:
+  # Flask Authentication Service
+  user-service:
+    build:
+      context: ./user-service
+    ports:
+      - "5001:5001"
+    environment:
+      - MONGO_URI=mongodb://user-db:27017/so-users
+    depends_on:
+      - user-db
+
+  # Database for Auth Service
+  user-db:
+    image: mongo:5.0
+    container_name: user-db
+    volumes:
+      - user-db-data:/data/db
+    ports:
+      - "27018:27017"
+
+  # Flask Content Service
+  post-service:
+    build:
+      context: ./post-service
+    ports:
+      - "5002:5002"
+    environment:
+      - MONGO_URI=mongodb://post-db:27017/so-posts
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    depends_on:
+      - post-db
+      - minio
+
+  # Database for Content Service
+  post-db:
+    image: mongo:5.0
+    container_name: post-db
+    volumes:
+      - post-db-data:/data/db
+    ports:
+      - "27019:27017"
+
+  # Flask Notification Service
+  notification-service:
+    build:
+      context: ./notification-service
+    ports:
+      - "5003:5003"
+    environment:
+      - MONGO_URI=mongodb://notification-db:27017/so-notifications
+    depends_on:
+      - notification-db
+
+  # Database for Notification Service
+  notification-db:
+    image: mongo:5.0
+    container_name: notification-db
+    volumes:
+      - notification-db-data:/data/db
+    ports:
+      - "27020:27017"
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - user-service
+      - post-service
+      - notification-service
+
+volumes:
+  user-db-data:
+  post-db-data:
+  notification-db-data:
+  minio-data:
