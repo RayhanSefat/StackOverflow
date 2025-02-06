@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   # Flask Authentication Service
   user-service:
@@ -18,7 +17,7 @@ services:
     volumes:
       - user-db-data:/data/db
     ports:
-      - "27018:27017"
+      - "27017:27017"
 
   # Flask Content Service
   post-service:
@@ -42,7 +41,7 @@ services:
     volumes:
       - post-db-data:/data/db
     ports:
-      - "27019:27017"
+      - "27017:27017"
 
   # Flask Notification Service
   notification-service:
@@ -62,7 +61,7 @@ services:
     volumes:
       - notification-db-data:/data/db
     ports:
-      - "27020:27017"
+      - "27017:27017"
 
   # MinIO Object Storage
   minio:
